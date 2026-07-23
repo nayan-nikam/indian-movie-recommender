@@ -10,13 +10,13 @@ from agent import mood_agent
 load_dotenv()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
-# 2. Initialize the App (This is the line that was missing!)
+# 2. Initialize the App
 app = FastAPI(title="Indian Movie Recommender API")
 
 # 3. Configure CORS for React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"], # Allows your Vercel frontend to connect
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"], 
@@ -47,6 +47,10 @@ async def get_recommendations(
     
     provider_list = providers.split(",")
     
+    # NEW LOGIC: Dynamically set the movie limit
+    # If the user only selected 1 provider, fetch 10 movies. Otherwise, fetch 5 per provider.
+    movie_limit = 10 if len(provider_list) == 1 else 5
+    
     # Helper function to fetch movies for a SINGLE provider
     async def fetch_provider_movies(client, provider_id):
         params = {
@@ -58,7 +62,8 @@ async def get_recommendations(
         }
         response = await client.get(url, headers=headers, params=params)
         if response.status_code == 200:
-            return response.json().get("results", [])[:5]
+            # Apply the dynamic limit here instead of hardcoding [:5]
+            return response.json().get("results", [])[:movie_limit]
         return []
 
     # Run all API calls concurrently
@@ -66,15 +71,26 @@ async def get_recommendations(
         tasks = [fetch_provider_movies(client, pid) for pid in provider_list]
         results = await asyncio.gather(*tasks)
         
-    # Mix the results together and remove duplicates
-    all_movies = []
-    seen_movie_ids = set()
+    # Mix the results and track WHICH platforms have the movie
+    all_movies_dict = {}
     
-    for provider_movies in results:
+    for index, provider_movies in enumerate(results):
+        current_provider_id = int(provider_list[index]) 
+        
         for movie in provider_movies:
-            if movie["id"] not in seen_movie_ids:
-                seen_movie_ids.add(movie["id"])
-                all_movies.append(movie)
+            movie_id = movie["id"]
+            
+            if movie_id not in all_movies_dict:
+                # First time seeing this movie: inject our custom 'available_on' list
+                movie["available_on"] = [current_provider_id]
+                all_movies_dict[movie_id] = movie
+            else:
+                # We already have this movie from another platform! 
+                # Just add this new provider ID to the existing list.
+                all_movies_dict[movie_id]["available_on"].append(current_provider_id)
+                    
+    # Convert our dictionary back into a simple list to send to React
+    all_movies = list(all_movies_dict.values())
                     
     return {
         "user_mood_input": mood,

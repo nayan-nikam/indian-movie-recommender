@@ -2,12 +2,12 @@ import { useState } from 'react';
 
 // TMDB IDs for popular platforms in India
 const OTT_PLATFORMS = [
-  { id: 8, name: "Netflix" },
-  { id: 119, name: "Prime Video" },
-  { id: 2336, name: "Jio Hotstar" },
-  { id: 11, name: "MUBI" },
-  { id: 237, name: "SonyLIV" },
-  { id: 232, name: "Zee5" }
+  { id: 8, name: "Netflix", hex: "#E50914" },
+  { id: 119, name: "Prime Video", hex: "#00A8E1" },
+  { id: 2336, name: "Jio Hotstar", hex: "#0F3CC9" },
+  { id: 11, name: "MUBI", hex: "#000000" },
+  { id: 237, name: "SonyLIV", hex: "#FF7F00" },
+  { id: 232, name: "Zee5", hex: "#8230C6" }
 ];
 
 function App() {
@@ -43,7 +43,7 @@ function App() {
     setMovies([]);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const baseUrl = "http://127.0.0.1:8000";
       const providersString = selectedProviders.join(",");
       const response = await fetch(`${baseUrl}/recommend?mood=${encodeURIComponent(mood)}&providers=${providersString}`);
       const data = await response.json();
@@ -126,11 +126,11 @@ function App() {
 
         {/* AI REASONING */}
         {aiReasoning && (
-          <div className="bg-slate-800/50 p-5 rounded-xl border border-emerald-500/30">
+          <div className="bg-black p-5 rounded-xl border border-emerald-500/30">
             <h3 className="text-emerald-400 font-semibold mb-2 flex items-center">
               <span className="mr-2">✨</span> Why these films?
             </h3>
-            <p className="text-slate-300 italic leading-relaxed">{aiReasoning}</p>
+            <p className="text-yellow-400 italic leading-relaxed">{aiReasoning}</p>
           </div>
         )}
 
@@ -158,6 +158,21 @@ function App() {
                   <p className="text-yellow-400 text-sm font-medium mt-1 mb-2">
                     ⭐ {movie.vote_average.toFixed(1)} <span className="text-slate-500 text-xs">({movie.release_date?.split('-')[0]})</span>
                   </p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                        {movie.available_on?.map((provId) => {
+                          // Find the matching name from our master list
+                          const platform = OTT_PLATFORMS.find(p => p.id === provId);
+                          return platform ? (
+                            <span 
+                              key={provId} 
+                              style={{ backgroundColor: platform.hex }}
+                              className="px-2 py-1 text-white text-[10px] uppercase tracking-wider font-semibold rounded border shadow-sm"
+                            >
+                              {platform.name}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
                   <p className="text-slate-400 text-sm line-clamp-4 leading-snug">
                     {movie.overview || "No overview available."}
                   </p>
