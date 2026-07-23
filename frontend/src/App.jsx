@@ -43,7 +43,7 @@ function App() {
     setMovies([]);
 
     try {
-      const baseUrl = "http://127.0.0.1:8000";
+      const baseUrl =  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
       const providersString = selectedProviders.join(",");
       const response = await fetch(`${baseUrl}/recommend?mood=${encodeURIComponent(mood)}&providers=${providersString}`);
       const data = await response.json();
